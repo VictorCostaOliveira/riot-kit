@@ -1,66 +1,118 @@
 # RiotKit
 
-Gem Ruby pura para consumir a **Riot Games API** (rotas regionais + plataforma), modelos de partida/jogador e dados estáticos via **Data Dragon**, sem dependência de Rails.
+Ruby toolkit for the **Riot Games API**: regional routing and platform hosts, League match/player helpers, **`Result`-based services**, fluent **facades**, and bundled **Data Dragon** static data. Works in any Ruby app — **Rails is optional**.
 
-## Instalação
+**Languages:** English · [Português (BR)](README.pt-br.md)
+
+---
+
+## Installation
+
+Add to your `Gemfile` and run `bundle install`:
 
 ```ruby
-gem "riot_kit", github: "SEU_USUARIO/riot-kit"
+gem "riot_kit", "~> 1.0"
 ```
 
-## Configuração
+**From GitHub** (specific branch or fork):
+
+```ruby
+gem "riot_kit", github: "VictorCostaOliveira/riot-kit", branch: "main"
+```
+
+Ruby **≥ 3.2** — see [`riot_kit.gemspec`](riot_kit.gemspec).
+
+---
+
+## Configuration
+
+You need a [Riot developer API key](https://developer.riotgames.com/). Expose it as **`RIOT_API_KEY`** (or assign `config.api_key` yourself).
+
+### Rails
+
+```bash
+bin/rails generate riot_kit:install
+```
+
+This adds `config/initializers/riot_kit.rb`. Edit **`region`** (routing cluster) and **`platform`** (shard: `br1`, `na1`, `euw1`, …) for your defaults.
+
+### Any Ruby project
 
 ```ruby
 require "riot_kit"
 
 RiotKit.configure do |config|
   config.api_key = ENV.fetch("RIOT_API_KEY")
-  config.region = :americas      # :americas | :europe | :asia | :sea
-  config.platform = :br1         # br1, na1, euw1, ...
+  config.region = :americas # :americas | :europe | :asia | :sea
+  config.platform = :br1    # br1, na1, euw1, ...
 end
 ```
 
-## Uso
+Optional settings (timeouts, retries, logger) are commented in the generated initializer.
 
-### Facades (fluente)
+---
+
+## Usage
+
+### Facades
 
 ```ruby
-player = RiotKit::Player.find("SummonerName#TAG")
-player.matches(:ranked)
+player = RiotKit::Player.find("GameName#TAG")
+player.matches(:ranked).first   # lazy: loads match details as you iterate
 player.match("BR1_1234567890")
 player.ranked
 player.avg_matches_per_week
 
 RiotKit::Items.find(3078)
-RiotKit::Items.categorize([3078, 3006, 1036])
 RiotKit::Champions.find("Aatrox")
-RiotKit::SummonerSpells.find(4)
-RiotKit::Runes.find(8005)
 ```
 
 ### Services (`Result`)
 
 ```ruby
-RiotKit::Services::Riot::MatchHistory.call(nickname: "Name#TAG", filter: :ranked)
+RiotKit::Services::Riot::MatchHistory.call(nickname: "GameName#TAG", filter: :ranked)
   .on_success { |entries| p entries }
   .on_failure { |error| warn error.message }
 ```
 
-### Data Dragon local
+### Data Dragon
 
-Snapshots JSON ficam em `lib/riot_kit/data/data_dragon/`. Para atualizar (rede necessária):
+Static champion, item, rune, and spell data is **included in the gem** — no separate download for normal use.
 
-```bash
-bundle exec rake data_dragon:sync
-bundle exec rake data_dragon:version
-```
+For **per-request `platform` / `region`**, lazy `matches` behavior, queues, limits, and lower-level APIs, see **[Documentation](#documentation)** below.
 
-## Roadmap
+---
 
-- Rate limiting por headers `X-App-Rate-Limit`
-- Tipagem RBS / `dry-types`
-- Publicação RubyGems
+## Documentation
 
-## Licença
+| Doc | Contents |
+|-----|-----------|
+| **[INTEGRATION.md](INTEGRATION.md)** | Rails generator, **`RiotKit.configure`** patterns, Docker / `path:` gems, overriding **platform or region per request**, controllers and tests |
+| **[INTEGRATION.pt-br.md](INTEGRATION.pt-br.md)** | Same guide in Portuguese (Brazil) |
+| **[CHANGELOG.md](CHANGELOG.md)** | Release notes |
 
-MIT — ver [LICENSE.txt](LICENSE.txt).
+---
+
+## Support
+
+- **Bug reports & feature requests:** open an [issue](https://github.com/VictorCostaOliveira/riot-kit/issues) on GitHub (search existing issues first).
+- **Questions:** GitHub Issues are appropriate if something is unclear after reading **INTEGRATION.md** — include Ruby / gem version and a minimal repro when reporting bugs.
+
+Security-sensitive reports: prefer a private channel if your fork uses **Security** disclosures; otherwise contact the maintainer via the repo.
+
+---
+
+## Contributing
+
+1. Fork the repo and create a branch.
+2. `bundle install`
+3. `bundle exec rspec` and `bundle exec rubocop`
+4. Open a pull request with a clear description.
+
+**Releases:** bump `lib/riot_kit/version.rb`, then **push to `main`** — the **Tag release** workflow runs on every push, creates **`vX.Y.Z`** if that tag is still missing, and **Release RubyGem** then tests and publishes to RubyGems. Pushes that do not change the version simply see “tag already exists” and skip. Manual run: Actions → **Tag release** (`workflow_dispatch`). Details in `.github/workflows/`.
+
+---
+
+## License
+
+MIT — see [LICENSE.txt](LICENSE.txt).

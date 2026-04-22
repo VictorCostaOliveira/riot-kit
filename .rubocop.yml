@@ -34,5 +34,12 @@ Gemspec/DevelopmentDependencies:
 RSpec/MultipleExpectations:
   Enabled: false
 
+RSpec/ExampleLength:
+  Max: 60
+
+RSpec/DescribeClass:
+  Exclude:
+    - spec/riot_kit/facades/delegates_spec.rb
+
 RSpec/IdenticalEqualityAssertion:
   Enabled: false

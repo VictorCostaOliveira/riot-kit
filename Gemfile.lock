@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    riot_kit (0.1.0)
+    riot_kit (1.0.0)
       httparty (~> 0.22)
       logger (>= 1.6)
 

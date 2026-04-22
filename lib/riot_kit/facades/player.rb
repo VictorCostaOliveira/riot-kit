@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../services/riot/fetch_account'
-require_relative '../services/riot/match_history'
+require_relative '../models/riot/lazy_match_entries'
 require_relative '../services/riot/match_detail'
 require_relative '../services/riot/fetch_ranked_data'
 require_relative '../services/riot/fetch_avg_matches_per_week'
@@ -19,6 +19,7 @@ module RiotKit
       def initialize(account:, config:)
         @account = account
         @config = config
+        @matches_cache = {}
       end
 
       def puuid
@@ -29,12 +30,21 @@ module RiotKit
         account.display_riot_id
       end
 
-      def matches(filter = :ranked)
-        Services::Riot::MatchHistory.call(
+      # Memoized per Player, filter, and limit. Returns a lazy {Enumerable} — match-detail GETs run
+      # only while you iterate, so `matches.first` loads one detail (plus the match-id list API).
+      # Passes `puuid` from `find` so the history step skips GET /accounts/by-riot-id.
+      # Use `limit:` to cap how many distinct match ids may be detailed when you enumerate fully.
+      def matches(filter = :ranked, reload: false, limit: Services::Riot::MatchHistory::DEFAULT_DETAIL_LIMIT)
+        cache_key = [filter.to_sym, limit]
+        return @matches_cache[cache_key] if !reload && @matches_cache.key?(cache_key)
+
+        @matches_cache[cache_key] = Models::Riot::LazyMatchEntries.build(
           nickname: display_riot_id,
           filter: filter,
+          puuid: puuid,
+          limit: limit,
           config: @config
-        ).value!
+        )
       end
 
       def match(match_id)

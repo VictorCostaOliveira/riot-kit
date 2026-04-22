@@ -24,6 +24,7 @@ module RiotKit
           ::RiotKit::Services::Riot::MatchHistory.call(
             nickname: nickname,
             filter: filter,
+            puuid: puuid,
             client: @client,
             config: @config
           ).value!

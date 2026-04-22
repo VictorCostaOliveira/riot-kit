@@ -1,0 +1,65 @@
+name: Release RubyGem
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: ["3.2", "3.3"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Lint
+        run: bundle exec rubocop
+
+      - name: Spec
+        run: bundle exec rspec
+
+  rubygems:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout (tag ou branch)
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches gem version
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION=$(ruby -e "load 'lib/riot_kit/version.rb'; puts RiotKit::VERSION")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "${VERSION}" != "${TAG}" ]; then
+            echo "::error::Tag v${TAG} must equal lib/riot_kit/version.rb (${VERSION})"
+            exit 1
+          fi
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Build gem
+        run: gem build riot_kit.gemspec
+
+      - name: Push to RubyGems.org
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBY_GEM_KEY }}
+        run: |
+          if [ -z "${GEM_HOST_API_KEY}" ]; then
+            echo "::error::Defina o secret RUBY_GEM_KEY nas configurações do repositório (Settings → Secrets)."
+            exit 1
+          fi
+          gem push riot_kit-*.gem

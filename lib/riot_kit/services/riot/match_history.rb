@@ -11,12 +11,20 @@ module RiotKit
       class MatchHistory < RiotKit::Services::Base
         include RiotKit::Helpers::Riot::MatchHelpers
 
+        # At most this many match-detail GETs per run (Riot returns many ids; we slice).
+        DEFAULT_DETAIL_LIMIT = 20
+
         steps :parse_riot_id, :fetch_puuid, :fetch_match_ids, :build_entries
 
-        def initialize(nickname:, filter: 'ranked', match_ids: nil, client: nil, config: RiotKit.config)
+        # `puuid` — when set (e.g. from Player.find), skips GET /accounts/by-riot-id.
+        # `limit` — max match-detail GETs (default 20). Use 1 if you only need the first row.
+        def initialize(nickname:, filter: 'ranked', match_ids: nil, puuid: nil, limit: DEFAULT_DETAIL_LIMIT,
+                       client: nil, config: RiotKit.config)
           @nickname = nickname
           @filter = filter.to_s
           @match_ids = match_ids # nil => fetch IDs via API; Array => use provided IDs
+          @puuid_override = normalize_puuid_override(puuid)
+          @detail_limit = clamp_detail_limit(limit)
           @client = client || Clients::Riot.new(config: config)
           @config = config
           @result = []
@@ -24,7 +32,23 @@ module RiotKit
 
         private
 
+        def normalize_puuid_override(raw)
+          return nil if raw.nil?
+
+          stripped = raw.to_s.strip
+          stripped.empty? ? nil : stripped
+        end
+
+        def clamp_detail_limit(value)
+          value = value.to_i
+          value = DEFAULT_DETAIL_LIMIT if value <= 0
+
+          [value, DEFAULT_DETAIL_LIMIT].min
+        end
+
         def parse_riot_id
+          return if @puuid_override
+
           parts = @nickname.to_s.split('#', 2)
           raise Errors::InvalidRiotId unless parts.size == 2
 
@@ -32,6 +56,11 @@ module RiotKit
         end
 
         def fetch_puuid
+          if @puuid_override
+            @puuid = @puuid_override
+            return
+          end
+
           response = @client.get_account_by_riot_id(game_name: @game_name, tag_line: @tag_line)
           raise Errors::AccountNotFound unless response.success?
 
@@ -49,7 +78,8 @@ module RiotKit
         end
 
         def build_entries
-          @result = @match_ids.first(20).filter_map { |match_id| build_entry_for(match_id) }
+          ids = @match_ids.first(@detail_limit)
+          @result = ids.filter_map { |match_id| build_entry_for(match_id) }
         end
 
         def build_entry_for(match_id)
@@ -61,6 +91,16 @@ module RiotKit
 
         def match_ids_provided?
           @match_ids.is_a?(Array) && !@match_ids.empty?
+        end
+
+        def prepare_ids_phase!
+          parse_riot_id
+          fetch_puuid
+          fetch_match_ids
+        end
+
+        def ids_for_detail_fetch
+          @match_ids.first(@detail_limit)
         end
 
         def build_entry(data)
