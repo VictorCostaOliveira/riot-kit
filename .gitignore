@@ -1,0 +1,6 @@
+/.bundle/
+/coverage/
+/vendor/
+*.gem
+*.gemspec.lock
+.ruby-version

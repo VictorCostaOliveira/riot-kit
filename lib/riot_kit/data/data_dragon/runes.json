@@ -1,0 +1,9 @@
+{
+  "8005": {
+    "id": 8005,
+    "name": "Press the Attack",
+    "short_desc": "Hitting an enemy champion 3 consecutive times deals bonus damage.",
+    "long_desc": "",
+    "icon": "perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png"
+  }
+}

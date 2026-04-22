@@ -1,0 +1,38 @@
+plugins:
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
+  Exclude:
+    - vendor/**/*
+
+Style/Documentation:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 200
+  Exclude:
+    - lib/riot_kit/models/riot/player/combat.rb
+
+Lint/MissingSuper:
+  Enabled: false
+
+Naming/AccessorMethodName:
+  Enabled: false
+
+Metrics:
+  Enabled: false
+
+Naming/MethodParameterName:
+  MinNameLength: 2
+
+Gemspec/DevelopmentDependencies:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/IdenticalEqualityAssertion:
+  Enabled: false

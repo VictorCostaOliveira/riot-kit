@@ -1,0 +1,13 @@
+{
+  "3078": {
+    "id": 3078,
+    "name": "Infinity Edge",
+    "plaintext": "",
+    "gold_total": 3400,
+    "image_full": "3078.png",
+    "tags": [
+      "Damage",
+      "Critical Strike"
+    ]
+  }
+}
