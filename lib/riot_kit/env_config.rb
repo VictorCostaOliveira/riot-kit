@@ -49,9 +49,7 @@ module RiotKit
           return value.to_s.strip unless value.nil? || value.to_s.strip.empty?
         end
 
-        if creds.respond_to?(:[]) && creds[:riot_api_key]
-          return creds[:riot_api_key].to_s.strip
-        end
+        return creds[:riot_api_key].to_s.strip if creds.respond_to?(:[]) && creds[:riot_api_key]
 
         creds.dig(:riot, :api_key)&.to_s&.strip if creds.respond_to?(:dig)
       end
@@ -85,7 +83,7 @@ module RiotKit
       end
 
       def apply_http_timeout(config)
-        raw = ENV[ENV_HTTP_TIMEOUT]
+        raw = ENV.fetch(ENV_HTTP_TIMEOUT, nil)
         return config if raw.nil? || raw.strip.empty?
 
         config.http_timeout = Integer(raw)
@@ -95,7 +93,7 @@ module RiotKit
       end
 
       def apply_retry_attempts(config)
-        raw = ENV[ENV_RETRY_ATTEMPTS]
+        raw = ENV.fetch(ENV_RETRY_ATTEMPTS, nil)
         return config if raw.nil? || raw.strip.empty?
 
         config.retry_attempts = Integer(raw)
@@ -105,7 +103,7 @@ module RiotKit
       end
 
       def apply_retry_base_delay(config)
-        raw = ENV[ENV_RETRY_BASE_DELAY]
+        raw = ENV.fetch(ENV_RETRY_BASE_DELAY, nil)
         return config if raw.nil? || raw.strip.empty?
 
         config.retry_base_delay = Float(raw)

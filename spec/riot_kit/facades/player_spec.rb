@@ -32,8 +32,7 @@ RSpec.describe RiotKit::Facades::Player do
 
   describe '#matches' do
     before do
-      allow(riot_client).to receive(:get_account_by_riot_id).and_return(HttpResponses.ok({ puuid: 'puuid-1' }))
-      allow(riot_client).to receive(:get_match_ids_by_puuid).and_return(HttpResponses.ok(['BR1_1']))
+      allow(riot_client).to receive_messages(get_account_by_riot_id: HttpResponses.ok({ puuid: 'puuid-1' }), get_match_ids_by_puuid: HttpResponses.ok(['BR1_1']))
       allow(riot_client).to receive(:get_match).with(match_id: 'BR1_1').and_return(
         HttpResponses.ok(MatchPayloads.minimal_match(puuid: 'puuid-1', match_id: 'BR1_1'))
       )
