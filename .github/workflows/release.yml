@@ -36,6 +36,7 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    environment: PROD
     permissions:
       contents: write
     env:
@@ -94,7 +95,7 @@ jobs:
           GEM_HOST_API_KEY: ${{ secrets.RUBY_GEM_KEY }}
         run: |
           if [ -z "${GEM_HOST_API_KEY:-}" ]; then
-            echo "::error::Defina o secret RUBY_GEM_KEY nas configurações do repositório."
+            echo "::error::Defina RUBY_GEM_KEY como secret do repositório OU do Environment PROD."
             exit 1
           fi
           gem push riot_kit-*.gem
