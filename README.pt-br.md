@@ -109,7 +109,7 @@ Temas sensíveis de segurança: use o fluxo de **Security** do repositório, se 
 3. `bundle exec rspec` e `bundle exec rubocop`
 4. Pull request com descrição objetiva.
 
-**Releases:** aumente a versão em `lib/riot_kit/version.rb` e dê **push na `main`** — o **Tag release** roda em todo push, cria **`vX.Y.Z`** só se essa tag ainda não existir; o **Release RubyGem** testa e publica no RubyGems. Se a versão não mudou, o workflow só registra que a tag já existe e para. Manual: Actions → **Tag release** (`workflow_dispatch`). Detalhes em `.github/workflows/`.
+**Releases:** suba a versão em `lib/riot_kit/version.rb` e dê **push na `main`**. O workflow **Release RubyGem** (`.github/workflows/release.yml`) roda **RuboCop**, **RSpec**, depois cria a tag **`vX.Y.Z`** se ainda não existir e **publica no RubyGems** no mesmo job (tag criada pelo `GITHUB_TOKEN` não dispara outro workflow no GitHub). Se a tag já existe, o passo do gem é pulado. Manual: Actions → **Release RubyGem** (`workflow_dispatch`). PRs e branches que não são `main` usam só o **CI** (`.github/workflows/ci.yml`).
 
 ---
 

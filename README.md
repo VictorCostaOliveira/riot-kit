@@ -109,7 +109,7 @@ Security-sensitive reports: prefer a private channel if your fork uses **Securit
 3. `bundle exec rspec` and `bundle exec rubocop`
 4. Open a pull request with a clear description.
 
-**Releases:** bump `lib/riot_kit/version.rb`, then **push to `main`** — the **Tag release** workflow runs on every push, creates **`vX.Y.Z`** if that tag is still missing, and **Release RubyGem** then tests and publishes to RubyGems. Pushes that do not change the version simply see “tag already exists” and skip. Manual run: Actions → **Tag release** (`workflow_dispatch`). Details in `.github/workflows/`.
+**Releases:** bump `lib/riot_kit/version.rb`, then **push to `main`**. The **Release RubyGem** workflow (`.github/workflows/release.yml`) runs **RuboCop**, **RSpec**, then creates the **`vX.Y.Z`** tag if it is still missing and **publishes to RubyGems** in the same run (required because tag pushes made with the default Actions token do not trigger follow-up workflows). If the tag already exists, the gem step is skipped. Manual run: Actions → **Release RubyGem** (`workflow_dispatch`). PRs and non-main branches use **CI** only (`.github/workflows/ci.yml`).
 
 ---
 

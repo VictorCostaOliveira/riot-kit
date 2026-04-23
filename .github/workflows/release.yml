@@ -1,17 +1,24 @@
+# Tests → on main: create tag if missing → gem push (same workflow; GITHUB_TOKEN tag pushes do not trigger other workflows).
+
 name: Release RubyGem
 
 on:
   push:
+    branches: [main]
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
+
+concurrency:
+  group: riot-kit-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby: ["3.2", "3.3"]
+        ruby: ['3.2', '3.3']
     steps:
       - uses: actions/checkout@v4
 
@@ -26,40 +33,68 @@ jobs:
       - name: Spec
         run: bundle exec rspec
 
-  rubygems:
+  publish:
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-
+      contents: write
+    env:
+      REF_TYPE: ${{ github.ref_type }}
+      REF_NAME: ${{ github.ref_name }}
     steps:
-      - name: Checkout (tag ou branch)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify tag matches gem version
-        if: github.ref_type == 'tag'
+      - name: Prepare tag (main) or verify tag ref
+        id: prepare
         run: |
-          VERSION=$(ruby -e "load 'lib/riot_kit/version.rb'; puts RiotKit::VERSION")
-          TAG="${GITHUB_REF_NAME#v}"
-          if [ "${VERSION}" != "${TAG}" ]; then
-            echo "::error::Tag v${TAG} must equal lib/riot_kit/version.rb (${VERSION})"
-            exit 1
+          set -euo pipefail
+          VERSION="$(ruby -e "load 'lib/riot_kit/version.rb'; puts RiotKit::VERSION")"
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin --tags
+
+          if [ "${REF_TYPE}" = "tag" ]; then
+            if [ "${REF_NAME}" != "${TAG}" ]; then
+              echo "::error::Tag ${REF_NAME} must match lib/riot_kit/version.rb (${VERSION} => ${TAG})"
+              exit 1
+            fi
+            echo "skipped=false" >> "${GITHUB_OUTPUT}"
+            exit 0
           fi
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — nothing to publish."
+            echo "skipped=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          git tag -a "${TAG}" -m "Release ${VERSION}"
+          git push origin "${TAG}" || true
+          git fetch origin --tags
+          git rev-parse "${TAG}" >/dev/null 2>&1 || { echo "::error::Failed to create tag ${TAG}"; exit 1; }
+          echo "skipped=false" >> "${GITHUB_OUTPUT}"
+
+      - uses: ruby/setup-ruby@v1
+        if: steps.prepare.outputs.skipped != 'true'
         with:
-          ruby-version: "3.3"
+          ruby-version: '3.3'
 
       - name: Build gem
+        if: steps.prepare.outputs.skipped != 'true'
         run: gem build riot_kit.gemspec
 
       - name: Push to RubyGems.org
+        if: steps.prepare.outputs.skipped != 'true'
         env:
           GEM_HOST_API_KEY: ${{ secrets.RUBY_GEM_KEY }}
         run: |
-          if [ -z "${GEM_HOST_API_KEY}" ]; then
-            echo "::error::Defina o secret RUBY_GEM_KEY nas configurações do repositório (Settings → Secrets)."
+          if [ -z "${GEM_HOST_API_KEY:-}" ]; then
+            echo "::error::Defina o secret RUBY_GEM_KEY nas configurações do repositório."
             exit 1
           fi
           gem push riot_kit-*.gem
